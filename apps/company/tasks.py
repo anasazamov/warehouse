@@ -101,22 +101,20 @@ def update_recomendation_supplier(company):
     for item in products:
         warehouses_w = ProductOrder.objects.filter(product=item, marketplace_type="wildberries")
         if warehouses_w.exists():
-            date = warehouses_w.latest("date").date
-            warehouses_w = warehouses_w.filter(date__date=date).values_list("warehouse", flat=True)
+            warehouses_w = warehouses_w.filter(date__date__gte=date_from,date__date__lte=date_to).values_list("warehouse", flat=True)
         else:
             warehouses_w = []
 
         warehouses_o = ProductOrder.objects.filter(product=item, marketplace_type="ozon")
         if warehouses_o.exists():
-            date = warehouses_o.latest("date").date
-            warehouses_o = warehouses_o.filter(date__date=date).values_list("warehouse", flat=True)
+            
+            warehouses_o = warehouses_o.filter(date__date__gte=date_from,date__date__lte=date_to).values_list("warehouse", flat=True)
         else:
             warehouses_o = []
         
         warehouses_y = ProductOrder.objects.filter(product=item, marketplace_type="yandexmarket")
         if warehouses_y.exists():
-            date = warehouses_y.latest("date").date
-            warehouses_y = warehouses_y.filter(date__date=date).values_list("warehouse", flat=True)
+            warehouses_y = warehouses_y.filter(date__date__gte=date_from,date__date__lte=date_to).values_list("warehouse", flat=True)
         else:
             warehouses_y = []
 
@@ -134,7 +132,8 @@ def update_recomendation_supplier(company):
                 stock_w = stock_w.first()
                 stock = ProductStock.objects.filter(product=item,warehouse=stock_w,marketplace_type="wildberries",company=company)
                 if stock.exists():
-                    stock = stock.latest("date").quantity
+                    date = stock.latest("date").date
+                    stock = stock.filter(date=date).aggregate(total=Sum("quantity"))['total']
                 else:
                     stock = 0
             else:
@@ -189,7 +188,8 @@ def update_recomendation_supplier(company):
                 stock_w = stock_w.first()
                 stock = ProductStock.objects.filter(product=item,warehouse=stock_w,marketplace_type="ozon", company=company)
                 if stock.exists():
-                    stock = stock.latest("date").quantity
+                    date = stock.latest("date").date
+                    stock = stock.filter(date=date).aggregate(total=Sum("quantity"))['total']
                 else:
                     stock = 0
             else:
@@ -246,7 +246,8 @@ def update_recomendation_supplier(company):
                 stock_w = stock_w.first()
                 stock = ProductStock.objects.filter(product=item,warehouse=stock_w,marketplace_type="yandexmarket",company=company)
                 if stock.exists():
-                    stock = stock.latest("date").quantity
+                    date = stock.latest("date").date
+                    stock = stock.filter(date=date).aggregate(total=Sum("quantity"))['total']
                 else:
                     stock = 0
             else:
