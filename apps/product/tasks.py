@@ -172,7 +172,6 @@ def update_wildberries_stocks():
                 quantity = item_not_official['qty']
                 
                 for warehouse_item in warehouse_data:
-                    print(warehouse_item)
                     
                     if item_not_official['wh'] == warehouse_item['ID']:
                         
