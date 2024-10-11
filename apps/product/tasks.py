@@ -168,7 +168,7 @@ def update_wildberries_stocks():
             
             result_w = not_official_api_wildberries(api_key=wb_api_key,nmId=item['nmId'])
             for item_not_official in result_w:
-                
+                print(item_not_official)
                 quantity = item_not_official['qty']
                 
                 for warehouse_item in warehouse_data:
