@@ -24,7 +24,6 @@ def get_warehouse_data( api_key):
         "Authorization": api_key
     }
     response = requests.get("https://supplies-api.wildberries.ru/api/v1/warehouses", headers=headers)
-    print(response.text)
     return response.json()
 
 def not_official_api_wildberries(nmId, api_key):
@@ -174,21 +173,14 @@ def update_wildberries_stocks():
                 for warehouse_item in warehouse_data:
                     
                     if item_not_official['wh'] == warehouse_item['ID']:
-                        
+
                         warehouse = warehouse_item['name']
-                        for official_warehouse in response.json():
-                            if warehouse == official_warehouse['warehouseName']:
-                                skip_outer_loop_2 = False
-                                break
-                            else :
-                                skip_outer_loop_2 = True
-                        
                         skip_outer_loop = False
                         break
                     else:
                         skip_outer_loop = True
                         
-                if skip_outer_loop or skip_outer_loop_2:
+                if skip_outer_loop:
                     continue
                 
                 warehouse_obj, created_w = WarehouseForStock.objects.get_or_create(name=warehouse, marketplace_type="wildberries")

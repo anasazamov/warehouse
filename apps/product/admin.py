@@ -9,7 +9,7 @@ from django_celery_results.models import TaskResult
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['vendor_code',"id"]
+    list_display = ['vendor_code',"id", "marketplace_type"]
     search_fields = ['vendor_code', "id"]
     list_filter = ["marketplace_type"]
 

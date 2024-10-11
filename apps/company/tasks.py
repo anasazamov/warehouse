@@ -21,37 +21,34 @@ def update_recomendations(company):
     products_st = ProductStock.objects.filter(company=company).order_by("product_id").distinct("product_id").values_list('product', flat=True).distinct()
     combined_product_ids = set(products_s) | set(products_o) | set(products_st)
 
-    products = Product.objects.filter(id__in=combined_product_ids).order_by("id").distinct("id").values("id")
+    products = Product.objects.filter(id__in=combined_product_ids).order_by("vendor_code").distinct("vendor_code").values("vendor_code")
 
-    
-
-    shelf_stocks = Shelf.objects.filter(product__in=products, company=company).values('product').annotate(total_stock=Sum('stock'))
-    sorting_stocks = SortingWarehouse.objects.filter(product__in=products, company=company)
+    shelf_stocks = Shelf.objects.filter(product__vendor_code__in=products, company=company).values('product__vendor_code').annotate(total_stock=Sum('stock'))
+    sorting_stocks = SortingWarehouse.objects.filter(product__vendor_code__in=products, company=company)
     
     recommendations = Recommendations.objects.filter(company=company).delete()
     recommendations = []
     
     for sale in products:
 
-        product = sale['id']
+        product = sale['vendor_code']
         
-        barcode = Product.objects.get(id=int(product)).barcode
-        product_w = Product.objects.filter(barcode=barcode,marketplace_type="wildberries")
-        
+        product = Product.objects.filter(vendor_code=product)
+        product_w = product.filter(marketplace_type="wildberries")
         if product_w.exists():
             product = product_w.first()
         else:
-            product = Product.objects.get(id=int(product))
-        total_sale = ProductOrder.objects.filter(product=product,company=company, date__date__gte=date_from, date__date__lte=date_to).count()
+            product = product.first()
+        total_sale = ProductOrder.objects.filter(product__vendor_code=product.vendor_code,company=company, date__date__gte=date_from, date__date__lte=date_to).count()
         
-        shelf_stock = shelf_stocks.filter(product=product,company=company).order_by("product")
+        shelf_stock = shelf_stocks.filter(product__vendor_code=product.vendor_code,company=company).order_by("product")
         if shelf_stock.exists():
             shelf_stock = shelf_stock.first()
             shelf_stock = shelf_stock['total_stock']
         else:
             shelf_stock = 0
-        sorting = sorting_stocks.filter(product=product).aggregate(total=Sum("unsorted"))["total"]
-        in_production = InProduction.objects.filter(product=product,company=company)
+        sorting = sorting_stocks.filter(product__vendor_code=product.vendor_code).aggregate(total=Sum("unsorted"))["total"]
+        in_production = InProduction.objects.filter(product__vendor_code=product.vendor_code,company=company)
         if in_production.exists():
             in_production = in_production.aggregate(total=Sum("manufacture"))["total"]
         else:
@@ -61,7 +58,7 @@ def update_recomendations(company):
             sorting = 0
         
         summ = 0
-        stock = ProductStock.objects.filter(company=company,product=product)
+        stock = ProductStock.objects.filter(company=company,product__vendor_code=product.vendor_code)
         
         if stock.exists():
             date = stock.latest("date").date
