@@ -172,7 +172,7 @@ class CompanyStocksView(APIView):
     )
     def get(self, request, company_id):
         
-        # update_ozon_stocks.delay()
+        update_ozon_stocks.delay()
         update_yandex_stocks.delay()
         company = get_object_or_404(Company,id=company_id)
         serializer = CompanyStocksSerializer(company, context={'request': request})

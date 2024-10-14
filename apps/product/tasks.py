@@ -85,11 +85,11 @@ def update_wildberries_sales():
                 barcode = item["barcode"]
                 product = Product.objects.filter(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries").first()
                 if not product:
-                    products_to_create.append(Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries"))
+                    Product.objects.create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
                 
                 date = datetime.strptime(item['date'], "%Y-%m-%dT%H:%M:%S")
 
-                if (product.id, date, warehouse.id) not in existing_sales_set:
+                if (product.id, date, warehouse) not in existing_sales_set:
                     sales_to_create.append(ProductSale(
                         product=product or Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries"),
                         company=company,
@@ -153,8 +153,8 @@ def update_wildberries_orders():
                 product = Product.objects.filter(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries").first()
 
                 if not product:
-                    product = Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
-                    products_to_create.append(product)
+                    product = Product.objects.create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
+                    
                 else:
                     Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
 
@@ -169,9 +169,7 @@ def update_wildberries_orders():
                         marketplace_type="wildberries",
                         warehouse=warehouse
                     ))
-
-            
-            Product.objects.bulk_create(products_to_create, ignore_conflicts=True) 
+ 
             ProductOrder.objects.bulk_create(orders_to_create, ignore_conflicts=True)
 
         return "Success"
@@ -206,8 +204,7 @@ def update_wildberries_stocks():
             
             product = Product.objects.filter(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries").first()
             if not product:
-                product = Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
-                products_to_create.append(product)
+                product = Product.objects.create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
 
             result_w = not_official_api_wildberries(api_key=wb_api_key, nmId=item['nmId'])
             for item_not_official in result_w:
@@ -528,7 +525,6 @@ def update_ozon_stocks():
 
     return "Success"
 
-
 def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED"):
     if (datetime.strptime(date_from,"%Y-%m-%d") - datetime.now()).days > 30:
         date_to = (datetime.strptime(date_from,"%Y-%m-%d") + timedelta(days=30)).strftime("%Y-%m-%d")
@@ -724,8 +720,8 @@ def update_yandex_market_sales():
                                 )
                             )
                     else:
-                        new_product = Product(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
-                        products_to_create.append(new_product)
+                        new_product = Product.objects.create(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
+                        
                         product_sales_to_create.append(
                             ProductSale(
                                 product=new_product,
@@ -863,8 +859,8 @@ def update_yandex_market_orders():
                                 )
                             )
                     else:
-                        new_product = Product(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
-                        products_to_create.append(new_product)
+                        new_product = Product.objects.create(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
+                        
                         product_orders_to_create.append(
                             ProductOrder(
                                 product=new_product,
@@ -876,16 +872,12 @@ def update_yandex_market_orders():
                         )
 
                     date = date + timedelta(seconds=1)
-
-        if products_to_create:
-            Product.objects.bulk_create(products_to_create, ignore_conflicts=True)
         
         if product_orders_to_create:
             ProductOrder.objects.bulk_create(product_orders_to_create, ignore_conflicts=True)
 
     return "success"
     
-
 def get_warehouse_name(business_id,headers, warehouse_id):
     warehouse_by_busness_id_url = f"https://api.partner.market.yandex.ru/businesses/{business_id}/warehouses"               
     warehouse_url = f"https://api.partner.market.yandex.ru/warehouses"    
@@ -1023,8 +1015,8 @@ def update_yandex_stocks():
                             )
                         )
                 else:
-                    new_product = Product(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
-                    products_to_create.append(new_product)
+                    new_product = Product.objects.create(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
+                    
                     product_stocks_to_create.append(
                         ProductStock(
                             product=new_product,
