@@ -172,7 +172,7 @@ class CompanyStocksView(APIView):
     )
     def get(self, request, company_id):
         
-        update_ozon_stocks.delay()
+        # update_ozon_stocks.delay()
         update_yandex_stocks.delay()
         company = get_object_or_404(Company,id=company_id)
         serializer = CompanyStocksSerializer(company, context={'request': request})
@@ -834,7 +834,7 @@ class ShipmentHistoryView(APIView):
             sorting_warehouse = ShipmentHistory.objects.filter(company=company, product__vendor_code__contains=article,date__gte=date_from, date__lte=date_to).order_by(f"{ordering_by_quantity}quantity").distinct("product")
         else:
             sorting_warehouse = ShipmentHistory.objects.filter(company=company, product__vendor_code__contains=article,date__gte=date_from, date__lte=date_to).distinct("product")
-            print(sorting_warehouse)
+            
         context = {"date_from": date_from, "date_to": date_to}
         
         
