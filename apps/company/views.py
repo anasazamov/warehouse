@@ -135,9 +135,9 @@ class CompanySalesView(APIView):
         parameters=COMPANY_SALES_PARAMETRS
     )
     def get(self, request: Request, company_id):
-        update_wildberries_sales.delay()
-        update_ozon_sales.delay()
-        update_yandex_market_sales.delay()
+        # update_wildberries_sales.delay()
+        # update_ozon_sales.delay()
+        # update_yandex_market_sales.delay()
         company = get_object_or_404(Company,id=company_id)
         serializer = CompanySalesSerializer(company, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -153,9 +153,9 @@ class CompanyOrdersView(APIView):
     )
     def get(self, request, company_id):
         
-        update_wildberries_orders.delay()
-        update_ozon_orders.delay()
-        update_yandex_market_orders.delay()
+        # update_wildberries_orders.delay()
+        # update_ozon_orders.delay()
+        # update_yandex_market_orders.delay()
         
         company = get_object_or_404(Company,id=company_id)
         serializer = CompanyOrdersSerializer(company, context={'request': request})
@@ -172,8 +172,8 @@ class CompanyStocksView(APIView):
     )
     def get(self, request, company_id):
         
-        update_ozon_stocks.delay()
-        update_yandex_stocks.delay()
+        # update_ozon_stocks.delay()
+        # update_yandex_stocks.delay()
         company = get_object_or_404(Company,id=company_id)
         serializer = CompanyStocksSerializer(company, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -884,5 +884,6 @@ class UpdateWildberriesStock(APIView):
     responses={200: {"message": "Calculation started", "task_id": 465456}}
         )
     def get(self, request):
-        task = update_wildberries_stocks.delay()
+        task = synchronous_algorithm.delay()
+        update_wildberries_stocks.delay()
         return Response({"message": "Calculation started", "task_id": task.id},status.HTTP_200_OK)

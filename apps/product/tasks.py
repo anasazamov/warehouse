@@ -85,13 +85,13 @@ def update_wildberries_sales():
                 barcode = item["barcode"]
                 product = Product.objects.filter(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries").first()
                 if not product:
-                    Product.objects.create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
+                    Product.objects.get_or_create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries")
                 
                 date = datetime.strptime(item['date'], "%Y-%m-%dT%H:%M:%S")
 
-                if (product.id, date, warehouse) not in existing_sales_set:
+                if (product, date, warehouse) not in existing_sales_set:
                     sales_to_create.append(ProductSale(
-                        product=product or Product(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries"),
+                        product=product or Product.objects.create(vendor_code=item['supplierArticle'], barcode=barcode, marketplace_type="wildberries"),
                         company=company,
                         date=date,
                         marketplace_type="wildberries",
@@ -494,8 +494,7 @@ def update_ozon_stocks():
                 ozon_product = Product.objects.filter(barcode=barcode, marketplace_type='ozon').first()
 
                 if not ozon_product and not wildberries_product:
-                    product = Product(vendor_code=vendor_code, marketplace_type="ozon", barcode=barcode)
-                    products_to_create.append(product)
+                    product = Product.objects.get_or_create(vendor_code=vendor_code, marketplace_type="ozon", barcode=barcode)
                     stocks_to_create.append(ProductStock(product=product, company=company, date=date, warehouse=warehouse, marketplace_type="ozon", quantity=quantity))
                 elif ozon_product and wildberries_product:
                     product_sale_w = ProductStock.objects.filter(product=wildberries_product, company=company, date=date, warehouse=warehouse, marketplace_type="ozon", quantity=quantity).first()
@@ -674,8 +673,8 @@ def update_yandex_market_sales():
 
                         if not yandexmarket_product and not wildberries_product:
 
-                            new_product = Product(vendor_code=vendor_code, marketplace_type="yandexmarket", barcode=barcode)
-                            products_to_create.append(new_product)
+                            new_product = Product.objects.get_or_create(vendor_code=vendor_code, marketplace_type="yandexmarket", barcode=barcode)
+                            
                             product_sales_to_create.append(
                                 ProductSale(
                                     product=new_product,
@@ -720,7 +719,7 @@ def update_yandex_market_sales():
                                 )
                             )
                     else:
-                        new_product = Product.objects.create(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
+                        new_product = Product.objects.get_or_create(vendor_code=vendor_code, barcode=barcode, marketplace_type="yandexmarket")
                         
                         product_sales_to_create.append(
                             ProductSale(
@@ -1036,3 +1035,23 @@ def update_yandex_stocks():
             ProductStock.objects.bulk_create(product_stocks_to_create, ignore_conflicts=True)
 
     return "Success"
+
+
+@app.task
+def synchronous_algorithm():
+    
+    update_wildberries_sales.delay()
+    update_ozon_sales.delay()
+    update_yandex_market_sales()
+    time.sleep(180)
+    update_wildberries_orders.delay()
+    update_ozon_orders.delay()
+    update_yandex_market_orders()
+    time.sleep(180)
+    # update_wildberries_stocks().delay()
+    update_ozon_stocks.delay()
+    update_yandex_stocks.delay()
+
+    return True
+
+    
