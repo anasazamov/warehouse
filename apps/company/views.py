@@ -628,9 +628,9 @@ class RecomamandationSupplierView(APIView):
             supplier = RecomamandationSupplier.objects.filter(company=company, product__vendor_code__contains=article,marketplace_type__icontains=service).distinct("product")
         
         if region_name:
-            supplier = supplier.filter(warehouse__region_name__contains=region_name)
+            supplier = supplier.filter(warehouse__oblast_okrug_name__contains=region_name)
             if not supplier.exists():
-                supplier = supplier.filter(warehouse__oblast_okrug_name__contains=region_name)
+                supplier = supplier.filter(warehouse__region_name__contains=region_name)
             region_obj = supplier.values_list("warehouse",flat=True)
             context = {"market": service, "region_obj": region_obj}
         else:
@@ -884,6 +884,6 @@ class UpdateWildberriesStock(APIView):
     responses={200: {"message": "Calculation started", "task_id": 465456}}
         )
     def get(self, request):
-        task = update_yandex_stocks.delay()
-        # update_wildberries_stocks.delay()
+        task = synchronous_algorithm.delay()
+        update_wildberries_stocks.delay()
         return Response({"message": "Calculation started", "task_id": task.id},status.HTTP_200_OK)
