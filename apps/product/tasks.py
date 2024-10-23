@@ -479,7 +479,6 @@ def update_ozon_orders():
                 date_from = date_from1.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             else:
                 date_from = (date_from1 + timedelta(days=3)).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-            print(date_from)
 
 @app.task
 def update_ozon_stocks():
@@ -775,20 +774,13 @@ def update_yandex_market_orders():
             if buyer_total == item_total:
                 if "serviceName" in item["delivery"].keys():
                     warehouse_name = item["delivery"]['serviceName']
-            
-                warehouse_name = ""
+                else:
+                    continue
                 oblast_okrug_name = item["delivery"]['region']['parent']['name']
-                region_name = item["delivery"]['region']['name']
-                try:
-                    country_name = item.get('delivery', {}).get('address', {}).get('country', "")
-                except:
-                    country_name = "Russia"
 
                 warehouse, created_w = Warehouse.objects.get_or_create(
                     name = warehouse_name,
-                    country_name = country_name,
-                    oblast_okrug_name = oblast_okrug_name,
-                    region_name = region_name
+                    oblast_okrug_name = oblast_okrug_name
                 )
                 
                 products = item["items"]
@@ -984,15 +976,15 @@ def update_yandex_stocks():
 def synchronous_algorithm():
     
     update_wildberries_sales()
-    update_ozon_sales()
+    update_ozon_sales.delay()
     update_yandex_market_sales()
     
     update_wildberries_orders()
-    update_ozon_orders()
+    update_ozon_orders.delay()
     update_yandex_market_orders()
     
     # update_wildberries_stocks()
-    update_ozon_stocks()
+    update_ozon_stocks.delay()
     
     update_yandex_stocks()
 
