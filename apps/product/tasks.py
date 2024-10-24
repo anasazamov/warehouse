@@ -378,7 +378,7 @@ def update_ozon_orders():
 
         while datetime.strptime(date_from,'%Y-%m-%dT%H:%M:%S.%fZ') <= datetime.now():
 
-            fbo_orders = get_paid_orders(FBO_URL,headers,date_from,"awaiting_packaging","")
+            fbo_orders = get_paid_orders(FBO_URL,headers,date_from,"awaiting_packaging", )
             fbs_orders = get_paid_orders(FBS_URL,headers,date_from, "awaiting_deliver","")
             
             results = fbo_orders + fbs_orders 
@@ -976,15 +976,15 @@ def update_yandex_stocks():
 def synchronous_algorithm():
     
     update_wildberries_sales()
-    update_ozon_sales.delay()
+    update_ozon_sales()
     update_yandex_market_sales()
     
     update_wildberries_orders()
-    update_ozon_orders.delay()
+    update_ozon_orders()
     update_yandex_market_orders()
     
     # update_wildberries_stocks()
-    update_ozon_stocks.delay()
+    update_ozon_stocks()
     
     update_yandex_stocks()
 
