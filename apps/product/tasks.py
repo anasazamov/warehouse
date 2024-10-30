@@ -884,7 +884,7 @@ def update_yandex_stocks():
     for yandex in YandexMarket.objects.all():
         api_key = yandex.api_key_bearer
         # fbs = yandex.fbs_campaign_id
-        fby = yandex.fbs_campaign_id
+        fby = yandex.fby_campaign_id
         business_id = yandex.business_id
         
         url = "https://api.partner.market.yandex.ru/campaigns/{campaignId}/offers/stocks"
@@ -981,17 +981,17 @@ def update_yandex_stocks():
 @app.task(base=QueueOnce, once={'graceful': True})
 def synchronous_algorithm():
     
-    update_wildberries_sales.delay()
-    update_ozon_sales.delay()
+    # update_wildberries_sales.delay()
+    # update_ozon_sales.delay()
     update_yandex_market_sales.delay()
     
-    update_wildberries_orders.delay()
-    update_ozon_orders.delay()
+    # update_wildberries_orders.delay()
+    # update_ozon_orders.delay()
     update_yandex_market_orders.delay()
     
-    update_wildberries_stocks.delay()
+    # update_wildberries_stocks.delay()
     
-    update_ozon_stocks.delay()
+    # update_ozon_stocks.delay()
     
     update_yandex_stocks.delay()
 
