@@ -252,6 +252,7 @@ def update_ozon_sales():
         results = fbo_orders + fbs_orders
 
         for item in results:
+           
             try:
                 date = datetime.strptime(item['in_process_at'],"%Y-%m-%dT%H:%M:%S.%fZ")
             except:
@@ -338,8 +339,7 @@ def update_ozon_sales():
                         )
                     except:
                         continue
-        
-            
+                 
 @app.task(base=QueueOnce, once={'graceful': True})
 def update_ozon_orders():
     
@@ -352,6 +352,7 @@ def update_ozon_orders():
         date_from = False
     if not date_from:
         date_from = (datetime.now()-timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    
     for ozon in Ozon.objects.all():
         company = ozon.company
         api_token = ozon.api_token
@@ -369,7 +370,10 @@ def update_ozon_orders():
         for item in results:
             
             date = item['created_at']
-            date = datetime.strptime(date,"%Y-%m-%dT%H:%M:%S.%fZ")
+            try:
+                date = datetime.strptime(date,"%Y-%m-%dT%H:%M:%S.%fZ")
+            except:
+                date = datetime.strptime(date,"%Y-%m-%dT%H:%M:%SZ")
             sku = item['products'][0]['offer_id']
             
             if "warehouse_name" in item["analytics_data"].keys():
@@ -527,7 +531,7 @@ def update_ozon_stocks():
             product_stock.save()
     return "Succes"
 
-def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED"):
+def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED", limit=50):
 
     headers = {
         'Content-Type': 'application/json',
@@ -535,7 +539,8 @@ def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED"):
                 }
     
     difrence = (datetime.now() - datetime.strptime(date_from,"%Y-%m-%d")).days
-    if difrence == 365:
+    
+    if difrence >= 200:
         orders = []
         months = []
         
@@ -559,33 +564,36 @@ def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED"):
         
         for date_from, date_to in months:
             
-            url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&supplierShipmentDateFrom=&supplierShipmentDateTo=&updatedAtFrom=&updatedAtTo=&dispatchType=&fake=&hasCis=&onlyWaitingForCancellationApprove=&onlyEstimatedDelivery=&buyerType=&page=&pageSize="
+            url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&limit={limit}"
             # print(url)
             response = requests.get(url, headers=headers)
             
             orders += response.json()["orders"]
-            if "pager" in response.json().keys():
-                for i in range(2,response.json()["pager"]["pagesCount"]+1):
-                    url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&supplierShipmentDateFrom=&supplierShipmentDateTo=&updatedAtFrom=&updatedAtTo=&dispatchType=&fake=&hasCis=&onlyWaitingForCancellationApprove=&onlyEstimatedDelivery=&buyerType=&page={i}&pageSize=1000"
+            while len(response.json()['orders']) >= limit:
+                if 'paging' in response.json().keys() and 'nextPageToken' in response.json()['paging']:
+                    page_token = response.json()['paging']['nextPageToken']
+                    url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&limit={limit}&page_token={page_token}"
                     response = requests.get(url, headers=headers)
                     if response.status_code == 200:
                         orders += response.json()["orders"]
-    
+        
     else:
         
         date_to = datetime.now().strftime('%Y-%m-%d')
-        url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&supplierShipmentDateFrom=&supplierShipmentDateTo=&updatedAtFrom=&updatedAtTo=&dispatchType=&fake=&hasCis=&onlyWaitingForCancellationApprove=&onlyEstimatedDelivery=&buyerType=&page=0&pageSize="
+        url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&limit={limit}"
         orders = []
         
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
+           
             orders += response.json()['orders']
-            if "pagesCount" in response.json().keys():
-                for i in range(2,response.json()["pagesCount"]+1):
-                    url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&supplierShipmentDateFrom=&supplierShipmentDateTo=&updatedAtFrom=&updatedAtTo=&dispatchType=&fake=&hasCis=&onlyWaitingForCancellationApprove=&onlyEstimatedDelivery=&buyerType=&page={i}&pageSize="
+            while len(response.json()['orders']) >= limit:
+                if 'paging' in response.json().keys() and 'nextPageToken' in response.json()['paging']:
+                    page_token = response.json()['paging']['nextPageToken']
+                    url = f"https://api.partner.market.yandex.ru/campaigns/{client_id}/orders?orderIds=&status={status}&substatus=&fromDate={date_from}&toDate={date_to}&limit={limit}&page_token={page_token}"
                     response = requests.get(url, headers=headers)
-                    if response.status_code == 200:
-                        orders += response.json()["orders"]
+                if response.status_code == 200:
+                    orders += response.json()["orders"]
             # print(len(orders))
             return orders
         else:
@@ -596,7 +604,7 @@ def get_yandex_orders(api_key, date_from, client_id, status="DELIVERED"):
 
 def find_republic_name(region):
 
-    if  "REPUBLIC" in region.get("type", ""):
+    if  "REPUBLIC" == region.get("type", ""):
         return region.get("name")
     
     parent = region.get("parent")
